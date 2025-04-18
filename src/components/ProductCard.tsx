@@ -44,14 +44,14 @@ export default function ProductCard({ product, minimal = false }: ProductCardPro
           </p>
         )}
         
-        <div className="mt-3 flex justify-between items-baseline">
+        {/* <div className="mt-3 flex justify-between items-baseline">
           <span className="text-lg font-bold">{formatINR(product.price)}</span>
           {!minimal && product.stock !== undefined && (
             <span className={`text-xs ${product.stock > 10 ? 'text-success' : 'text-warning'}`}>
               {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
             </span>
           )}
-        </div>
+        </div> */}
       </CardContent>
       
       {!minimal && (
