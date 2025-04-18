@@ -18,7 +18,7 @@ export default function ProductCard({ product, minimal = false }: ProductCardPro
   
   const handleAddToCart = () => {
     addToCart(product, quantity);
-    setQuantity(1); // Reset quantity after adding
+    setQuantity(1); 
   };
   
   return (
