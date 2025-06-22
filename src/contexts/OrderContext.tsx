@@ -1,7 +1,7 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Order, CartItem, OrderStatus, ShippingDetails, Coupon, PaymentInfo, TrackingInfo } from "@/types";
 import { useAuth } from "./AuthContext";
+import { useProduct } from "./ProductContext";
 import { toast } from "sonner";
 import { getOrderTrackingStatus } from "@/services/trackingService";
 import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from "@/services/emailService";
@@ -65,6 +65,7 @@ const MOCK_ORDERS: Order[] = [
 export function OrderProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
   const { user } = useAuth();
+  const { updateStock } = useProduct();
 
   // Load orders from localStorage on component mount
   useEffect(() => {
@@ -92,19 +93,34 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       throw new Error("User must be logged in to create an order");
     }
 
+    console.log('Creating order for user:', user.id);
+    console.log('Order items:', items);
+
+    // Check stock availability before creating order
+    for (const item of items) {
+      if (item.product.stock !== undefined && item.product.stock < item.quantity) {
+        throw new Error(`Insufficient stock for ${item.product.name}. Available: ${item.product.stock}, Requested: ${item.quantity}`);
+      }
+    }
+
     // Calculate total amount
     let totalAmount = items.reduce(
       (total, item) => total + item.product.price * item.quantity,
       0
     );
     
+    console.log('Subtotal before coupon:', totalAmount);
+    
     // Apply coupon discount if available
     if (appliedCoupon) {
+      console.log('Applying coupon:', appliedCoupon);
       if (appliedCoupon.discountType === 'percentage') {
         const discountAmount = (totalAmount * appliedCoupon.discountPercentage) / 100;
         totalAmount -= discountAmount;
+        console.log('Discount amount (percentage):', discountAmount);
       } else {
         totalAmount -= appliedCoupon.discountValue;
+        console.log('Discount amount (fixed):', appliedCoupon.discountValue);
       }
       
       // Ensure total is never negative
@@ -112,7 +128,10 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     }
 
     // Add 5% tax
-    totalAmount += totalAmount * 0.05;
+    const taxAmount = totalAmount * 0.05;
+    totalAmount += taxAmount;
+    
+    console.log('Final total amount:', totalAmount);
 
     // Create new order
     const newOrder: Order = {
@@ -127,15 +146,22 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       updatedAt: new Date()
     };
 
+    console.log('Created new order:', newOrder);
+
+    // Update stock for each ordered item
+    items.forEach(item => {
+      updateStock(item.product.id, item.quantity);
+    });
+
     // Add order to state
     setOrders(prevOrders => [...prevOrders, newOrder]);
-    toast.success("Order placed successfully!");
+    toast.success("Order placed successfully! Stock has been updated.");
     
     // Send order confirmation email (in a real app)
     if (user.email) {
       try {
         await sendOrderConfirmationEmail(newOrder, user.email);
-        toast.success("Order confirmation email sent!");
+        console.log("Order confirmation email sent successfully");
       } catch (error) {
         console.error("Failed to send order confirmation email", error);
       }

@@ -35,6 +35,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Product } from "@/types";
 import { formatINR, formatSimpleDate } from "@/utils/formatters";
+import ImageUploader from "@/components/admin/ImageUploader";
+
 
 export default function AdminProducts() {
   const { products, addProduct, updateProduct, deleteProduct } = useProduct();
@@ -50,11 +52,12 @@ export default function AdminProducts() {
     name: "",
     description: "",
     price: "",
-    imageUrl: "",
-    sku: "",
     category: "",
     stock: "",
+    sku: "",
   });
+  
+  const [productImages, setProductImages] = useState<string[]>([]);
   
   // Filter products by search term
   const filteredProducts = products.filter(
@@ -69,12 +72,29 @@ export default function AdminProducts() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
   
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      price: "",
+      category: "",
+      stock: "",
+      sku: "",
+    });
+    setProductImages([]);
+  };
+  
   const handleAddProduct = () => {
     const price = parseFloat(formData.price);
     const stock = formData.stock ? parseInt(formData.stock) : undefined;
     
-    if (!formData.name || !formData.description || isNaN(price) || !formData.imageUrl) {
+    if (!formData.name || !formData.description || isNaN(price)) {
       toast.error("Please fill all required fields");
+      return;
+    }
+    
+    if (productImages.length === 0) {
+      toast.error("Please add at least one product image");
       return;
     }
     
@@ -92,23 +112,16 @@ export default function AdminProducts() {
       name: formData.name,
       description: formData.description,
       price,
-      imageUrl: formData.imageUrl,
+      imageUrl: productImages[0], // First image as main image
+      images: productImages.slice(1), // Rest as additional images
       sku: formData.sku || undefined,
       category: formData.category || undefined,
       stock,
     });
     
-    // Reset form and close dialog
-    setFormData({
-      name: "",
-      description: "",
-      price: "",
-      imageUrl: "",
-      sku: "",
-      category: "",
-      stock: "",
-    });
+    resetForm();
     setIsAddDialogOpen(false);
+    toast.success("Product added successfully!");
   };
   
   const handleEditProduct = () => {
@@ -117,8 +130,13 @@ export default function AdminProducts() {
     const price = parseFloat(formData.price);
     const stock = formData.stock ? parseInt(formData.stock) : undefined;
     
-    if (!formData.name || !formData.description || isNaN(price) || !formData.imageUrl) {
+    if (!formData.name || !formData.description || isNaN(price)) {
       toast.error("Please fill all required fields");
+      return;
+    }
+    
+    if (productImages.length === 0) {
+      toast.error("Please add at least one product image");
       return;
     }
     
@@ -136,13 +154,15 @@ export default function AdminProducts() {
       name: formData.name,
       description: formData.description,
       price,
-      imageUrl: formData.imageUrl,
+      imageUrl: productImages[0], // First image as main image
+      images: productImages.slice(1), // Rest as additional images
       sku: formData.sku || undefined,
       category: formData.category || undefined,
       stock,
     });
     
     setIsEditDialogOpen(false);
+    toast.success("Product updated successfully!");
   };
   
   const handleDeleteProduct = () => {
@@ -158,11 +178,12 @@ export default function AdminProducts() {
       name: product.name,
       description: product.description,
       price: product.price.toString(),
-      imageUrl: product.imageUrl,
-      sku: product.sku || "",
       category: product.category || "",
       stock: product.stock !== undefined ? product.stock.toString() : "",
+      sku: product.sku || "",
     });
+    // Combine main image and additional images
+    setProductImages([product.imageUrl, ...(product.images || [])]);
     setIsEditDialogOpen(true);
   };
   
@@ -177,8 +198,6 @@ export default function AdminProducts() {
       return;
     }
     
-    // In a real app, this would send the file to an API endpoint
-    // For demo purposes, we'll simulate processing
     toast.info(`Processing ${bulkUploadFile.name}...`);
     
     setTimeout(() => {
@@ -189,8 +208,6 @@ export default function AdminProducts() {
   };
   
   const handleExportProducts = () => {
-    // In a real app, this would generate a CSV/Excel file
-    // For demo purposes, we'll show a toast
     toast.success("Exporting products...");
     
     setTimeout(() => {
@@ -247,11 +264,18 @@ export default function AdminProducts() {
               filteredProducts.map((product) => (
                 <tr key={product.id} className="border-b hover:bg-muted/50">
                   <td className="p-4">
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="h-10 w-10 rounded-md object-cover"
-                    />
+                    <div className="relative">
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-10 w-10 rounded-md object-cover"
+                      />
+                      {product.images && product.images.length > 0 && (
+                        <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                          +{product.images.length}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="p-4 font-medium">{product.name}</td>
                   <td className="p-4 whitespace-nowrap">{formatINR(product.price)}</td>
@@ -314,7 +338,7 @@ export default function AdminProducts() {
       
       {/* Add Product Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Product</DialogTitle>
             <DialogDescription>
@@ -322,6 +346,12 @@ export default function AdminProducts() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {/* Product Images */}
+            <ImageUploader 
+              images={productImages}
+              onImagesChange={setProductImages}
+            />
+            
             {/* Product Name */}
             <div className="grid gap-2">
               <Label htmlFor="name">Product Name *</Label>
@@ -347,7 +377,7 @@ export default function AdminProducts() {
               />
             </div>
             
-            {/* Price */}
+            {/* Price and Stock */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="price">Price (₹) *</Label>
@@ -367,7 +397,6 @@ export default function AdminProducts() {
                 </div>
               </div>
               
-              {/* Stock */}
               <div className="grid gap-2">
                 <Label htmlFor="stock">Stock</Label>
                 <Input
@@ -379,19 +408,6 @@ export default function AdminProducts() {
                   onChange={handleInputChange}
                 />
               </div>
-            </div>
-            
-            {/* Image URL */}
-            <div className="grid gap-2">
-              <Label htmlFor="imageUrl">Image URL *</Label>
-              <Input
-                id="imageUrl"
-                name="imageUrl"
-                type="url"
-                value={formData.imageUrl}
-                onChange={handleInputChange}
-                required
-              />
             </div>
             
             {/* Category and SKU */}
@@ -417,7 +433,7 @@ export default function AdminProducts() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+            <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
               Cancel
             </Button>
             <Button onClick={handleAddProduct}>Add Product</Button>
@@ -427,7 +443,7 @@ export default function AdminProducts() {
       
       {/* Edit Product Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>
@@ -435,6 +451,12 @@ export default function AdminProducts() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {/* Product Images */}
+            <ImageUploader 
+              images={productImages}
+              onImagesChange={setProductImages}
+            />
+            
             {/* Product Name */}
             <div className="grid gap-2">
               <Label htmlFor="edit-name">Product Name *</Label>
@@ -460,7 +482,7 @@ export default function AdminProducts() {
               />
             </div>
             
-            {/* Price */}
+            {/* Price and Stock */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-price">Price (₹) *</Label>
@@ -480,7 +502,6 @@ export default function AdminProducts() {
                 </div>
               </div>
               
-              {/* Stock */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-stock">Stock</Label>
                 <Input
@@ -492,19 +513,6 @@ export default function AdminProducts() {
                   onChange={handleInputChange}
                 />
               </div>
-            </div>
-            
-            {/* Image URL */}
-            <div className="grid gap-2">
-              <Label htmlFor="edit-imageUrl">Image URL *</Label>
-              <Input
-                id="edit-imageUrl"
-                name="imageUrl"
-                type="url"
-                value={formData.imageUrl}
-                onChange={handleInputChange}
-                required
-              />
             </div>
             
             {/* Category and SKU */}

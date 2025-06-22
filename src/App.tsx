@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,7 +10,7 @@ import { ProductProvider } from "./contexts/ProductContext";
 import { CouponProvider } from "./contexts/CouponContext";
 import { ReviewProvider } from "./contexts/ReviewContext";
 import Layout from "./components/Layout";
-import RequireAuth from "./components/RequireAuth";
+
 
 // Pages
 import Home from "./pages/Home";
@@ -30,6 +29,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminUsers from "./pages/admin/AdminUsers";
 import NotFound from "./pages/NotFound";
+import RequireAuth from "./components/RequireAuth";
 
 const queryClient = new QueryClient();
 
@@ -89,4 +89,4 @@ const App = () => (
   </QueryClientProvider>
 );
 
-export default App;
+export default App

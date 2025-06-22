@@ -85,17 +85,20 @@ export default function Checkout() {
     
     // For card or UPI, process payment through Razorpay
     return new Promise((resolve, reject) => {
+      console.log('Starting payment process for:', paymentMethod);
+      
       initiatePayment(
         {
           amount: calculateTotal(),
           currency: "INR",
           name: "ShopNow",
-          description: "Purchase from ShopNow",
+          description: `Purchase from ShopNow - ${items.length} item(s)`,
           email: user?.email || "customer@example.com",
           contact: shippingDetails.phone,
         },
         (response) => {
           // Payment success callback
+          console.log('Payment success callback triggered');
           resolve({
             paymentId: response.razorpay_payment_id,
             paymentStatus: "completed",
@@ -105,6 +108,7 @@ export default function Checkout() {
         },
         (error) => {
           // Payment failure callback
+          console.error('Payment failure callback triggered:', error);
           reject(error);
         }
       );
@@ -128,20 +132,36 @@ export default function Checkout() {
     setIsProcessing(true);
     
     try {
+      console.log('Processing order with payment method:', paymentMethod);
+      
       // Process payment
       const paymentInfo = await processPayment();
+      console.log('Payment processed successfully:', paymentInfo);
       
       // Create order
       const order = await createOrder(items, shippingDetails, activeCoupon);
+      console.log('Order created successfully:', order.id);
       
       // Clear the cart after successful order placement
       clearCart();
       
       // Navigate to the order confirmation page
       navigate(`/orders/${order.id}`, { state: { isNewOrder: true } });
+      
     } catch (error) {
-      console.error("Error placing order:", error);
-      toast.error("Payment failed. Please try again or choose a different payment method.");
+      console.error("Error during checkout process:", error);
+      
+      let errorMessage = "Something went wrong. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('cancelled') || error.message.includes('dismissed')) {
+          errorMessage = "Payment was cancelled. You can try again when ready.";
+        } else if (error.message.includes('failed')) {
+          errorMessage = "Payment failed. Please check your payment details and try again.";
+        }
+      }
+      
+      toast.error(errorMessage);
       setIsProcessing(false);
     }
   };
@@ -149,14 +169,16 @@ export default function Checkout() {
   // If the cart is empty, redirect to the cart page
   if (items.length === 0 && !isProcessing) {
     return (
-      <div className="container mx-auto py-8 px-4 text-center">
-        <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
-        <p className="mb-6 text-muted-foreground">
-          Add some products to your cart before proceeding to checkout.
-        </p>
-        <Button onClick={() => navigate("/products")}>
-          Browse Products
-        </Button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
+          <p className="mb-6 text-muted-foreground">
+            Add some products to your cart before proceeding to checkout.
+          </p>
+          <Button onClick={() => navigate("/products")}>
+            Browse Products
+          </Button>
+        </div>
       </div>
     );
   }
@@ -164,14 +186,16 @@ export default function Checkout() {
   // If user is an admin, don't show checkout
   if (user?.role === 'admin') {
     return (
-      <div className="container mx-auto py-8 px-4 text-center">
-        <h1 className="text-2xl font-bold mb-4">Admin Access Restricted</h1>
-        <p className="mb-6 text-muted-foreground">
-          Administrators cannot place orders. Please use a customer account for shopping.
-        </p>
-        <Button onClick={() => navigate("/")}>
-          Return to Home
-        </Button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Admin Access Restricted</h1>
+          <p className="mb-6 text-muted-foreground">
+            Administrators cannot place orders. Please use a customer account for shopping.
+          </p>
+          <Button onClick={() => navigate("/")}>
+            Return to Home
+          </Button>
+        </div>
       </div>
     );
   }
@@ -196,255 +220,258 @@ export default function Checkout() {
   const total = calculateTotal();
   
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Button variant="ghost" onClick={() => navigate("/cart")} className="mb-8 -ml-2">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Cart
-      </Button>
-      
-      <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Shipping Information Form */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Shipping Information</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                name="name"
-                value={shippingDetails.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                name="address"
-                value={shippingDetails.address}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={shippingDetails.city}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  name="state"
-                  value={shippingDetails.state}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="zipCode">Zip Code</Label>
-                <Input
-                  id="zipCode"
-                  name="zipCode"
-                  value={shippingDetails.zipCode}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={shippingDetails.phone}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-            
-            {/* Payment Method Selection */}
-            <div className="mt-6">
-              <h3 className="font-semibold mb-3">Payment Method</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div
-                  className={`border rounded-lg p-4 cursor-pointer flex flex-col items-center ${
-                    paymentMethod === "card" ? "border-primary bg-primary/5" : ""
-                  }`}
-                  onClick={() => setPaymentMethod("card")}
-                >
-                  <CreditCard className="h-6 w-6 mb-2" />
-                  <span>Card</span>
-                </div>
-                <div
-                  className={`border rounded-lg p-4 cursor-pointer flex flex-col items-center ${
-                    paymentMethod === "upi" ? "border-primary bg-primary/5" : ""
-                  }`}
-                  onClick={() => setPaymentMethod("upi")}
-                >
-                  <svg className="h-6 w-6 mb-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 18L8 14H12L16 10H8L4 6H16L20 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M4 22L8 18L20 18L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  <span>UPI</span>
-                </div>
-                <div
-                  className={`border rounded-lg p-4 cursor-pointer flex flex-col items-center ${
-                    paymentMethod === "cod" ? "border-primary bg-primary/5" : ""
-                  }`}
-                  onClick={() => setPaymentMethod("cod")}
-                >
-                  <IndianRupee className="h-6 w-6 mb-2" />
-                  <span>Cash on Delivery</span>
-                </div>
-              </div>
-            </div>
-            
-            {paymentMethod === "card" && (
-              <div className="p-4 border rounded-md bg-accent/10 mt-4">
-                <p className="text-sm text-muted-foreground">
-                  You'll be redirected to our secure payment gateway to complete your purchase.
-                </p>
-              </div>
-            )}
-            
-            {paymentMethod === "upi" && (
-              <div className="p-4 border rounded-md bg-accent/10 mt-4">
-                <p className="text-sm text-muted-foreground">
-                  You'll be redirected to complete the payment using your preferred UPI app.
-                </p>
-              </div>
-            )}
-            
-            <Button
-              type="submit"
-              className="w-full mt-6"
-              disabled={isProcessing}
-            >
-              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isProcessing
-                ? "Processing..."
-                : user 
-                  ? (paymentMethod === "cod"
-                    ? "Place Order (Cash on Delivery)"
-                    : `Pay ${formatINR(total)} & Place Order`)
-                  : "Login to Checkout"
-              }
-            </Button>
-          </form>
-        </div>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-8 px-4 max-w-7xl">
+        <Button variant="ghost" onClick={() => navigate("/cart")} className="mb-8 -ml-2">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Cart
+        </Button>
         
-        {/* Order Summary */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-          <div className="bg-muted rounded-lg p-6">
-            <div className="divide-y">
-              <div className="space-y-3 pb-4">
-                {items.map(item => (
-                  <CheckoutProductItem key={item.product.id} item={item} />
-                ))}
+        <h1 className="text-3xl font-bold mb-8">Checkout</h1>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Shipping Information Form */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Shipping Information</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={shippingDetails.name}
+                  onChange={handleChange}
+                  required
+                />
               </div>
               
-              {/* Coupon Code Input */}
-              <div className="py-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Tag className="h-4 w-4" />
-                  <span className="text-sm font-medium">Have a coupon?</span>
-                </div>
-                
-                {activeCoupon ? (
-                  <div className="flex items-center justify-between bg-primary/10 p-3 rounded-md">
-                    <div>
-                      <span className="font-semibold text-primary">{activeCoupon.code}</span>
-                      <p className="text-xs text-muted-foreground">
-                        {activeCoupon.discountType === 'percentage' 
-                          ? `${activeCoupon.discountPercentage}% discount applied`
-                          : `${formatINR(activeCoupon.discountValue)} discount applied`
-                        }
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleRemoveCoupon}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter coupon code"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      onClick={handleApplyCoupon}
-                      disabled={isCouponApplying || !couponCode}
-                    >
-                      {isCouponApplying ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "Apply"
-                      )}
-                    </Button>
-                  </div>
-                )}
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  value={shippingDetails.address}
+                  onChange={handleChange}
+                  required
+                />
               </div>
               
-              <div className="space-y-3 py-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>{formatINR(subtotal)}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    value={shippingDetails.city}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
-                
-                {discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount</span>
-                    <span>-{formatINR(discount)}</span>
-                  </div>
-                )}
-                
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tax (5%)</span>
-                  <span>{formatINR(tax)}</span>
+                <div className="space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    name="state"
+                    value={shippingDetails.state}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
               </div>
               
-              <div className="pt-4">
-                <div className="flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span>{formatINR(total)}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode">Zip Code</Label>
+                  <Input
+                    id="zipCode"
+                    name="zipCode"
+                    value={shippingDetails.zipCode}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={shippingDetails.phone}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
               </div>
-            </div>
+              
+              {/* Payment Method Selection */}
+              <div className="mt-6">
+                <h3 className="font-semibold mb-3">Payment Method</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div
+                    className={`border rounded-lg p-4 cursor-pointer flex flex-col items-center transition-all ${
+                      paymentMethod === "card" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "hover:bg-accent/50"
+                    }`}
+                    onClick={() => setPaymentMethod("card")}
+                  >
+                    <CreditCard className="h-6 w-6 mb-2" />
+                    <span>Card</span>
+                  </div>
+                  <div
+                    className={`border rounded-lg p-4 cursor-pointer flex flex-col items-center transition-all ${
+                      paymentMethod === "upi" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "hover:bg-accent/50"
+                    }`}
+                    onClick={() => setPaymentMethod("upi")}
+                  >
+                    <svg className="h-6 w-6 mb-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 18L8 14H12L16 10H8L4 6H16L20 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M4 22L8 18L20 18L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>UPI</span>
+                  </div>
+                  <div
+                    className={`border rounded-lg p-4 cursor-pointer flex flex-col items-center transition-all ${
+                      paymentMethod === "cod" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "hover:bg-accent/50"
+                    }`}
+                    onClick={() => setPaymentMethod("cod")}
+                  >
+                    <IndianRupee className="h-6 w-6 mb-2" />
+                    <span>Cash on Delivery</span>
+                  </div>
+                </div>
+              </div>
+              
+              {paymentMethod === "card" && (
+                <div className="p-4 border rounded-md bg-blue-50 border-blue-200 mt-4">
+                  <p className="text-sm text-blue-700">
+                    💳 You'll be redirected to our secure payment gateway to complete your purchase.
+                  </p>
+                </div>
+              )}
+              
+              {paymentMethod === "upi" && (
+                <div className="p-4 border rounded-md bg-green-50 border-green-200 mt-4">
+                  <p className="text-sm text-green-700">
+                    📱 You'll be redirected to complete the payment using your preferred UPI app.
+                  </p>
+                </div>
+              )}
+              
+              <Button
+                type="submit"
+                className="w-full mt-6"
+                disabled={isProcessing}
+                size="lg"
+              >
+                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isProcessing
+                  ? "Processing Order..."
+                  : user 
+                    ? (paymentMethod === "cod"
+                      ? "Place Order (Cash on Delivery)"
+                      : `Pay ${formatINR(total)} & Place Order`)
+                    : "Login to Checkout"
+                }
+              </Button>
+            </form>
           </div>
           
-          {/* Payment Info Note */}
-          <div className="mt-6 p-4 bg-accent/10 rounded-lg">
-            <h3 className="text-sm font-semibold mb-2">Payment Information</h3>
-            <p className="text-sm text-muted-foreground">
-              This is a demo app. No actual payment will be processed.
-              {paymentMethod === "cod" 
-                ? " You can pay cash upon delivery." 
-                : " Click 'Pay & Place Order' to simulate a payment."}
-            </p>
+          {/* Order Summary */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+            <div className="bg-muted rounded-lg p-6">
+              <div className="divide-y">
+                <div className="space-y-3 pb-4">
+                  {items.map(item => (
+                    <CheckoutProductItem key={item.product.id} item={item} />
+                  ))}
+                </div>
+                
+                {/* Coupon Code Input */}
+                <div className="py-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="h-4 w-4" />
+                    <span className="text-sm font-medium">Have a coupon?</span>
+                  </div>
+                  
+                  {activeCoupon ? (
+                    <div className="flex items-center justify-between bg-primary/10 p-3 rounded-md">
+                      <div>
+                        <span className="font-semibold text-primary">{activeCoupon.code}</span>
+                        <p className="text-xs text-muted-foreground">
+                          {activeCoupon.discountType === 'percentage' 
+                            ? `${activeCoupon.discountPercentage}% discount applied`
+                            : `${formatINR(activeCoupon.discountValue)} discount applied`
+                          }
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveCoupon}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter coupon code"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={handleApplyCoupon}
+                        disabled={isCouponApplying || !couponCode}
+                      >
+                        {isCouponApplying ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Apply"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="space-y-3 py-4">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>{formatINR(subtotal)}</span>
+                  </div>
+                  
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount</span>
+                      <span>-{formatINR(discount)}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tax (5%)</span>
+                    <span>{formatINR(tax)}</span>
+                  </div>
+                </div>
+                
+                <div className="pt-4">
+                  <div className="flex justify-between font-semibold">
+                    <span>Total</span>
+                    <span>{formatINR(total)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Payment Info Note */}
+            <div className="mt-6 p-4 bg-accent/10 rounded-lg">
+              <h3 className="text-sm font-semibold mb-2">Payment Information</h3>
+              <p className="text-sm text-muted-foreground">
+                This is a demo app. No actual payment will be processed.
+                {paymentMethod === "cod" 
+                  ? " You can pay cash upon delivery." 
+                  : " Click 'Pay & Place Order' to simulate a payment."}
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -11,6 +11,11 @@ interface OrdersTableProps {
 }
 
 export default function OrdersTable({ orders, onViewOrder }: OrdersTableProps) {
+  // Sort orders by creation date (latest first)
+  const sortedOrders = [...orders].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  
   return (
     <div className="rounded-md border overflow-hidden">
       <table className="w-full text-sm">
@@ -27,8 +32,8 @@ export default function OrdersTable({ orders, onViewOrder }: OrdersTableProps) {
           </tr>
         </thead>
         <tbody>
-          {orders.length > 0 ? (
-            orders.map((order) => (
+          {sortedOrders.length > 0 ? (
+            sortedOrders.map((order) => (
               <tr key={order.id} className="border-b hover:bg-muted/50">
                 <td className="p-4 font-mono text-xs">{order.id}</td>
                 <td className="p-4">{order.shippingDetails.name}</td>

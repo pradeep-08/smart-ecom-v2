@@ -21,9 +21,12 @@ export default function Orders() {
   const { user } = useAuth();
   const { getUserOrders } = useOrder();
   const navigate = useNavigate();
-  
-  const orders = getUserOrders();
-  
+
+  // Sort orders by creation date (latest first)
+  const orders = getUserOrders().sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
   if (orders.length === 0) {
     return (
       <div className="container mx-auto py-16 px-4 text-center">
@@ -37,11 +40,11 @@ export default function Orders() {
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-8">My Orders</h1>
-      
+
       <div className="rounded-md border overflow-hidden">
         <Table>
           <TableHeader>

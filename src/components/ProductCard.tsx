@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, Plus, Minus } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Images } from "lucide-react";
 import { formatINR } from "@/utils/formatters";
 
 interface ProductCardProps {
@@ -18,17 +18,25 @@ export default function ProductCard({ product, minimal = false }: ProductCardPro
   
   const handleAddToCart = () => {
     addToCart(product, quantity);
-    setQuantity(1); 
+    setQuantity(1); // Reset quantity after adding
   };
+  
+  const totalImages = 1 + (product.images?.length || 0);
   
   return (
     <Card className="overflow-hidden h-full flex flex-col transition-all hover:shadow-md">
-      <Link to={`/products/${product.id}`} className="overflow-hidden">
+      <Link to={`/products/${product.id}`} className="overflow-hidden relative">
         <img
           src={product.imageUrl}
           alt={product.name}
           className="h-48 w-full object-cover transition-transform hover:scale-105"
         />
+        {totalImages > 1 && (
+          <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+            <Images className="h-3 w-3" />
+            {totalImages}
+          </div>
+        )}
       </Link>
       
       <CardContent className="flex-1 p-4">
@@ -44,14 +52,14 @@ export default function ProductCard({ product, minimal = false }: ProductCardPro
           </p>
         )}
         
-        {/* <div className="mt-3 flex justify-between items-baseline">
+        <div className="mt-3 flex justify-between items-baseline">
           <span className="text-lg font-bold">{formatINR(product.price)}</span>
           {!minimal && product.stock !== undefined && (
             <span className={`text-xs ${product.stock > 10 ? 'text-success' : 'text-warning'}`}>
               {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
             </span>
           )}
-        </div> */}
+        </div>
       </CardContent>
       
       {!minimal && (

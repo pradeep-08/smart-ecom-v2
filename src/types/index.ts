@@ -14,6 +14,7 @@ export interface Product {
   price: number;
   category?: string;
   imageUrl: string;
+  images?: string[]; // Additional images for the product
   sku?: string;
   stock?: number;
   createdAt: Date;
