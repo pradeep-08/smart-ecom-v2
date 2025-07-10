@@ -37,7 +37,6 @@ import { Product } from "@/types";
 import { formatINR, formatSimpleDate } from "@/utils/formatters";
 import ImageUploader from "@/components/admin/ImageUploader";
 
-
 export default function AdminProducts() {
   const { products, addProduct, updateProduct, deleteProduct } = useProduct();
   const [search, setSearch] = useState("");

@@ -10,7 +10,6 @@ import {
   LogOut,
   Menu,
   X,
-  Ticket,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -45,11 +44,6 @@ export default function AdminDashboard() {
       icon: <Package className="h-5 w-5" />,
       href: "/admin/orders",
     },
-    {
-        title: "Coupons",
-        icon: <Ticket className="h-5 w-5" />,
-        href: "/admin/coupons",
-      },
   ];
   
   return (

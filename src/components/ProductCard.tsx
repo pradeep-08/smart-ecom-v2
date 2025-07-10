@@ -1,6 +1,7 @@
 import { Product } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCart } from "@/contexts/CartContext";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -8,17 +9,37 @@ import { ShoppingCart, Plus, Minus, Images } from "lucide-react";
 import { formatINR } from "@/utils/formatters";
 
 interface ProductCardProps {
-  product: Product;
+  product?: Product;
   minimal?: boolean;
+  loading?: boolean;
 }
 
-export default function ProductCard({ product, minimal = false }: ProductCardProps) {
+export default function ProductCard({ product, minimal = false, loading = false }: ProductCardProps) {
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   
+  if (loading || !product) {
+    return (
+      <Card className="overflow-hidden h-full flex flex-col">
+        <Skeleton className="h-48 w-full" />
+        <CardContent className="flex-1 p-4">
+          <Skeleton className="h-6 w-3/4 mb-2" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-2/3 mb-3" />
+          <Skeleton className="h-5 w-1/3" />
+        </CardContent>
+        {!minimal && (
+          <CardFooter className="p-4 pt-0">
+            <Skeleton className="h-10 w-full" />
+          </CardFooter>
+        )}
+      </Card>
+    );
+  }
+  
   const handleAddToCart = () => {
     addToCart(product, quantity);
-    setQuantity(1); // Reset quantity after adding
+    setQuantity(1);
   };
   
   const totalImages = 1 + (product.images?.length || 0);

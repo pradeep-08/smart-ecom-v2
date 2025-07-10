@@ -1,10 +1,9 @@
-// Export all types here for easier imports
-
 export interface User {
   id: string;
   name: string;
   email: string;
   role: "user" | "admin";
+  createdAt: Date;
 }
 
 export interface Product {
@@ -34,7 +33,7 @@ export interface ShippingDetails {
   phone: string;
 }
 
-export type OrderStatus = "placed" | "packed" | "shipped" | "out_for_delivery" | "delivered" | "cancelled";
+export type OrderStatus = "placed" | "processing" | "packed" | "shipped" | "out_for_delivery" | "delivered" | "cancelled";
 
 export interface PaymentInfo {
   paymentId: string;

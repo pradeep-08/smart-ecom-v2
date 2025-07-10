@@ -5,7 +5,7 @@ import { toast } from "sonner";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<"admin" | "user">;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   getMockUsers: () => User[]; // New method to get mock users for admin panel
@@ -20,24 +20,28 @@ const MOCK_USERS: User[] = [
     email: "admin@example.com",
     name: "Admin User",
     role: "admin",
+    createdAt: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000),
   },
   {
     id: "user-1",
     email: "user@example.com",
     name: "Demo User",
     role: "user",
+    createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
   },
   {
     id: "user-2",
     email: "jane@example.com",
     name: "Jane Smith",
     role: "user",
+    createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
   },
   {
     id: "user-3",
     email: "john@example.com",
     name: "John Doe",
     role: "user",
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
   },
 ];
 
@@ -80,6 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("user", JSON.stringify(foundUser));
     toast.success(`Welcome back, ${foundUser.name}`);
     setLoading(false);
+    
+    // Return user role to help with navigation decisions
+    return foundUser.role;
   };
 
   const register = async (email: string, password: string, name: string) => {
@@ -101,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       name,
       role: "user",
+      createdAt: new Date(),
     };
     
     // For demo, we'll add to our mock users

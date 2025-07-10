@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useProduct } from "@/contexts/ProductContext";
 import { useOrder } from "@/contexts/OrderContext";
-
+import { useWaitlist } from "@/contexts/WaitlistContext";
 import { format, isWithinInterval } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { ShoppingBag, Package, TrendingUp, Bell } from "lucide-react";
 import DashboardFilters, { DashboardFilters as FilterType } from "@/components/admin/DashboardFilters";
 import { toast } from "sonner";
-import { useWaitlist } from "@/contexts/WaitlistContext";
 
 export default function AdminHome() {
   const { products } = useProduct();

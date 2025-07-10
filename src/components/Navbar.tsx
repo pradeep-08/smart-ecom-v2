@@ -37,7 +37,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            UPSELLOT
+            Market Cloud
           </h1>
         </Link>
 
@@ -45,7 +45,6 @@ export default function Navbar() {
         <nav className="hidden md:flex items-center space-x-6 text-foreground/70">
           <Link to="/" className="hover:text-foreground transition">Home</Link>
           <Link to="/products" className="hover:text-foreground transition">Products</Link>
-          <Link to="/orders" className="hover:text-foreground transition">Orders</Link>
         </nav>
 
         {/* User Actions */}

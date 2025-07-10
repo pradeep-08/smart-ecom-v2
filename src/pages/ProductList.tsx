@@ -1,9 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { useProduct } from "@/contexts/ProductContext";
 import ProductCard from "@/components/ProductCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -11,27 +11,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, Grid2X2, ListFilter, ArrowDown, ArrowUp } from "lucide-react";
+import { Search, Filter, Grid2X2, ListFilter, ArrowDown, ArrowUp, RefreshCw } from "lucide-react";
 import { formatINR } from "@/utils/formatters";
 
 export default function ProductList() {
-  const { products } = useProduct();
+  const { products, loading, refreshProducts } = useProduct();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("newest");
   const [category, setCategory] = useState<string>("all");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
   const [showFilters, setShowFilters] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Extract unique categories from products
   const categories = ["all", ...Array.from(new Set(products.map(p => p.category).filter(Boolean) as string[]))];
   
   // Find min and max prices for the price range filter
-  const minProductPrice = Math.min(...products.map(p => p.price));
-  const maxProductPrice = Math.max(...products.map(p => p.price));
+  const minProductPrice = products.length > 0 ? Math.min(...products.map(p => p.price)) : 0;
+  const maxProductPrice = products.length > 0 ? Math.max(...products.map(p => p.price)) : 100000;
   
   useEffect(() => {
-    setPriceRange([minProductPrice, maxProductPrice]);
-  }, [minProductPrice, maxProductPrice]);
+    if (products.length > 0) {
+      setPriceRange([minProductPrice, maxProductPrice]);
+    }
+  }, [minProductPrice, maxProductPrice, products.length]);
   
   // Filter and sort products
   const filteredProducts = products
@@ -58,10 +61,27 @@ export default function ProductList() {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshProducts();
+    setRefreshing(false);
+  };
   
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-8">All Products</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">All Products</h1>
+        <Button 
+          variant="outline" 
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
       
       {/* Main Search */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -151,27 +171,40 @@ export default function ProductList() {
         </div>
       )}
       
-      {/* Products Grid */}
-      {filteredProducts.length === 0 ? (
-        <div className="text-center py-16">
-          <h2 className="text-2xl font-semibold mb-4">No products found</h2>
-          <p className="text-muted-foreground mb-6">
-            Try adjusting your search or filter criteria
-          </p>
-          <Button onClick={() => { 
-            setSearch(""); 
-            setCategory("all"); 
-            setPriceRange([minProductPrice, maxProductPrice]); 
-          }}>
-            Clear Filters
-          </Button>
-        </div>
-      ) : (
+      {/* Loading State */}
+      {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map(product => (
-            <ProductCard key={product.id} product={product} />
+          {Array.from({ length: 8 }).map((_, index) => (
+            <ProductCard key={index} loading={true} />
           ))}
         </div>
+      )}
+      
+      {/* Products Grid */}
+      {!loading && (
+        <>
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-16">
+              <h2 className="text-2xl font-semibold mb-4">No products found</h2>
+              <p className="text-muted-foreground mb-6">
+                Try adjusting your search or filter criteria
+              </p>
+              <Button onClick={() => { 
+                setSearch(""); 
+                setCategory("all"); 
+                setPriceRange([minProductPrice, maxProductPrice]); 
+              }}>
+                Clear Filters
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

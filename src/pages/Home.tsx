@@ -1,20 +1,30 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useProduct } from "@/contexts/ProductContext";
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/ProductCard";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Filter } from "lucide-react";
 
 export default function Home() {
   const { products } = useProduct();
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   
-  // Get the latest 3 products
-  const featuredProducts = products
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Extract unique categories from products
+  const categories = ["all", ...Array.from(new Set(products.map(p => p.category).filter(Boolean) as string[]))];
+  
+  // Filter products by selected category
+  const filteredProducts = selectedCategory === "all" 
+    ? products 
+    : products.filter(product => product.category === selectedCategory);
+  
+  // Get featured products (latest 3 from filtered results)
+  const featuredProducts = filteredProducts
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 6); // Show more products when filtered
   
   return (
     <div className="flex flex-col gap-16 py-8">
-      {/* Hero Section
+      {/* Hero Section */}
       <section className="relative py-20 px-4 md:px-8 rounded-3xl overflow-hidden bg-gradient-to-br from-primary/80 to-accent/80 text-white">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1740')] mix-blend-overlay opacity-20 bg-cover bg-center" />
         
@@ -35,12 +45,35 @@ export default function Home() {
             </Button>
           </div>
         </div>
-      </section> */}
+      </section>
 
-      {/* Featured Products Section */}
+      {/* Category Filter Section */}
+      <section className="container mx-auto px-4">
+        <div className="flex items-center gap-4 mb-8">
+          <Filter className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-xl font-semibold">Shop by Category</h2>
+        </div>
+        
+        <div className="flex flex-wrap gap-3 mb-8">
+          {categories.map(category => (
+            <Button
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              onClick={() => setSelectedCategory(category)}
+              className="capitalize"
+            >
+              {category === "all" ? "All Products" : category}
+            </Button>
+          ))}
+        </div>
+      </section>
+
+      {/* Featured/Filtered Products Section */}
       <section className="container mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold">Products</h2>
+          <h2 className="text-3xl font-bold">
+            {selectedCategory === "all" ? "Featured Products" : `${selectedCategory} Products`}
+          </h2>
           <Button asChild variant="ghost" className="group">
             <Link to="/products" className="flex items-center">
               View All 
@@ -49,11 +82,26 @@ export default function Home() {
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredProducts.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {featuredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredProducts.map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">
+              No products found in the {selectedCategory} category.
+            </p>
+            <Button 
+              onClick={() => setSelectedCategory("all")} 
+              className="mt-4"
+              variant="outline"
+            >
+              Show All Products
+            </Button>
+          </div>
+        )}
       </section>
       
       {/* Features Section */}

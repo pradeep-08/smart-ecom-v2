@@ -32,8 +32,14 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      await login(email, password);
-      navigate(from, { replace: true });
+      const userRole = await login(email, password);
+      
+      // Redirect admins to dashboard, regular users to their intended destination
+      if (userRole === "admin") {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (error) {
       // Error handling is done in the AuthContext
       setIsLoading(false);

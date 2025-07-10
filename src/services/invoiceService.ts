@@ -1,4 +1,3 @@
-
 import { Order } from "@/types";
 import { formatINR, formatSimpleDate } from "@/utils/formatters";
 import jsPDF from 'jspdf';
@@ -21,7 +20,7 @@ export const generateInvoice = async (order: Order): Promise<string> => {
   return url;
 };
 
-// Create PDF invoice content with blue design matching the template
+// Create PDF invoice content with improved blue design
 function createInvoicePDF(pdf: jsPDF, order: Order): void {
   const discount = calculateDiscount(order);
   const subtotal = order.items.reduce(
@@ -30,177 +29,204 @@ function createInvoicePDF(pdf: jsPDF, order: Order): void {
   );
   const tax = (subtotal - discount) * 0.05;
   
-  // Blue color scheme matching the template
-  const primaryBlue = { r: 31, g: 81, b: 135 }; // Dark blue
-  const lightBlue = { r: 59, g: 130, b: 246 }; // Light blue
-  const grayColor = { r: 107, g: 114, b: 128 };
+  // Enhanced blue color scheme
+  const primaryBlue = [31, 81, 135] as const; // Dark blue
+  const lightBlue = [59, 130, 246] as const; // Light blue
+  const accentBlue = [37, 99, 235] as const; // Medium blue
+  const grayColor = [107, 114, 128] as const;
+  const lightGray = [243, 244, 246] as const;
   
-  // Create curved header design
-  pdf.setFillColor(primaryBlue.r, primaryBlue.g, primaryBlue.b);
+  // Create modern header with gradient effect
+  pdf.setFillColor(31, 81, 135);
+  pdf.rect(0, 0, 210, 50, 'F');
   
-  // Main header rectangle
-  pdf.rect(0, 0, 210, 60, 'F');
-  
-  // Create curved bottom design
-  pdf.setFillColor(lightBlue.r, lightBlue.g, lightBlue.b);
-  for (let i = 0; i < 210; i += 2) {
-    const curveHeight = 10 * Math.sin((i / 210) * Math.PI);
-    pdf.rect(i, 50 + curveHeight, 2, 15, 'F');
+  // Add gradient effect with multiple rectangles
+  for (let i = 0; i < 5; i++) {
+    const opacity = 0.2 - (i * 0.04);
+    pdf.setFillColor(59, 130, 246);
+    pdf.setGState(pdf.GState({ opacity }));
+    pdf.rect(0, 45 + i * 2, 210, 8, 'F');
   }
   
-  // INVOICE title - large and bold
+  // Reset opacity
+  pdf.setGState(pdf.GState({ opacity: 1 }));
+  
+  // INVOICE title - modern typography
   pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(32);
+  pdf.setFontSize(36);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('INVOICE', 25, 35);
+  pdf.text('INVOICE', 20, 35);
   
-  // Invoice number
-  pdf.setFontSize(14);
+  // Invoice number with modern styling
+  pdf.setFontSize(12);
   pdf.setFont('helvetica', 'normal');
-  pdf.text(`NO: INV-${order.id.split('-')[1] || '12345-1'}`, 150, 35);
+  const invoiceNumber = `INV-${order.id.split('-')[1] || Date.now().toString().slice(-6)}`;
+  pdf.text(`Invoice No: ${invoiceNumber}`, 140, 25);
+  pdf.text(`Date: ${formatSimpleDate(order.createdAt)}`, 140, 35);
   
-  // Reset text color to black for body content
+  // Reset text color for body content
   pdf.setTextColor(0, 0, 0);
   
-  // Bill To and From sections
-  let yPos = 85;
+  // Company and customer information section
+  let yPos = 75;
   
-  // Bill To section
-  pdf.setFontSize(16);
+  // From section (Company info) - left side with box
+  pdf.setFillColor(243, 244, 246);
+  pdf.rect(20, yPos - 5, 80, 45, 'F');
+  pdf.setDrawColor(31, 81, 135);
+  pdf.setLineWidth(0.5);
+  pdf.rect(20, yPos - 5, 80, 45, 'S');
+  
+  pdf.setFontSize(14);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('Bill To:', 25, yPos);
+  pdf.setTextColor(37, 99, 235);
+  pdf.text('FROM:', 25, yPos + 5);
   
-  pdf.setFontSize(12);
+  pdf.setFontSize(11);
   pdf.setFont('helvetica', 'normal');
-  pdf.text(order.shippingDetails.name, 25, yPos + 12);
-  pdf.text(order.shippingDetails.phone, 25, yPos + 24);
-  pdf.text(order.shippingDetails.address, 25, yPos + 36);
-  pdf.text(`${order.shippingDetails.city}, ${order.shippingDetails.state}`, 25, yPos + 48);
+  pdf.setTextColor(0, 0, 0);
+  pdf.text('Market Cloud eCommerce', 25, yPos + 15);
+  pdf.text('123 Business Street', 25, yPos + 25);
+  pdf.text('Business City, State 12345', 25, yPos + 35);
   
-  // From section (right side)
-  pdf.setFontSize(16);
+  // Bill To section (Customer info) - right side with box
+  pdf.setFillColor(243, 244, 246);
+  pdf.rect(110, yPos - 5, 80, 45, 'F');
+  pdf.setDrawColor(31, 81, 135);
+  pdf.rect(110, yPos - 5, 80, 45, 'S');
+  
+  pdf.setFontSize(14);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('From:', 150, yPos);
+  pdf.setTextColor(37, 99, 235);
+  pdf.text('BILL TO:', 115, yPos + 5);
   
-  pdf.setFontSize(12);
+  pdf.setFontSize(11);
   pdf.setFont('helvetica', 'normal');
-  pdf.text('ShopNow Store', 150, yPos + 12);
-  pdf.text('+91-98765-43210', 150, yPos + 24);
-  pdf.text('123 Business St., Business City', 150, yPos + 36);
+  pdf.setTextColor(0, 0, 0);
+  pdf.text(order.shippingDetails.name, 115, yPos + 15);
+  pdf.text(order.shippingDetails.phone, 115, yPos + 25);
+  const address = order.shippingDetails.address.length > 25 ? 
+    order.shippingDetails.address.substring(0, 25) + '...' : order.shippingDetails.address;
+  pdf.text(address, 115, yPos + 35);
   
-  // Date
+  // Items table with improved styling
   yPos += 70;
-  pdf.setFont('helvetica', 'normal');
-  pdf.text(`Date: ${formatSimpleDate(order.createdAt)}`, 25, yPos);
   
-  // Items table
-  yPos += 25;
-  
-  // Table header with blue background
-  pdf.setFillColor(primaryBlue.r, primaryBlue.g, primaryBlue.b);
-  pdf.rect(25, yPos - 8, 160, 15, 'F');
+  // Table header with gradient
+  pdf.setFillColor(31, 81, 135);
+  pdf.rect(20, yPos - 8, 170, 15, 'F');
   
   pdf.setTextColor(255, 255, 255);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(12);
-  pdf.text('Description', 30, yPos);
-  pdf.text('Qty', 110, yPos);
-  pdf.text('Price', 130, yPos);
-  pdf.text('Total', 160, yPos);
+  pdf.setFontSize(11);
+  pdf.text('DESCRIPTION', 25, yPos);
+  pdf.text('QTY', 120, yPos);
+  pdf.text('PRICE', 140, yPos);
+  pdf.text('TOTAL', 165, yPos);
   
-  // Reset text color for table content
+  // Table items with alternating colors
+  pdf.setTextColor(0, 0, 0);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(10);
+  
+  yPos += 20;
+  order.items.forEach((item, index) => {
+    // Alternating row colors
+    if (index % 2 === 0) {
+      pdf.setFillColor(248, 249, 250);
+      pdf.rect(20, yPos - 8, 170, 12, 'F');
+    }
+    
+    const itemName = item.product.name.length > 35 ? 
+      item.product.name.substring(0, 35) + '...' : item.product.name;
+    
+    pdf.text(itemName, 25, yPos);
+    pdf.text(item.quantity.toString(), 125, yPos);
+    pdf.text(formatINR(item.product.price), 145, yPos);
+    pdf.text(formatINR(item.product.price * item.quantity), 170, yPos);
+    yPos += 15;
+  });
+  
+  // Table bottom border
+  pdf.setDrawColor(31, 81, 135);
+  pdf.setLineWidth(1);
+  pdf.line(20, yPos, 190, yPos);
+  
+  // Summary section with improved styling
+  yPos += 25;
+  const summaryStartY = yPos;
+  
+  // Summary box background
+  pdf.setFillColor(243, 244, 246);
+  pdf.rect(120, yPos - 10, 70, 80, 'F');
+  pdf.setDrawColor(31, 81, 135);
+  pdf.setLineWidth(0.5);
+  pdf.rect(120, yPos - 10, 70, 80, 'S');
+  
   pdf.setTextColor(0, 0, 0);
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(11);
   
-  // Table items
-  yPos += 20;
-  order.items.forEach((item, index) => {
-    // Alternate row colors
-    if (index % 2 === 0) {
-      pdf.setFillColor(248, 249, 250);
-      pdf.rect(25, yPos - 8, 160, 12, 'F');
-    }
-    
-    const itemName = item.product.name.length > 25 ? 
-      item.product.name.substring(0, 25) + '...' : item.product.name;
-    
-    pdf.text(itemName, 30, yPos);
-    pdf.text(item.quantity.toString(), 115, yPos);
-    pdf.text(formatINR(item.product.price), 135, yPos);
-    pdf.text(formatINR(item.product.price * item.quantity), 165, yPos);
-    yPos += 15;
-  });
-  
-  // Table border
-  pdf.setDrawColor(primaryBlue.r, primaryBlue.g, primaryBlue.b);
-  pdf.setLineWidth(1);
-  pdf.line(25, yPos, 185, yPos);
-  
-  // Totals section with blue background
-  yPos += 20;
-  
-  // Sub Total row with blue background
-  pdf.setFillColor(primaryBlue.r, primaryBlue.g, primaryBlue.b);
-  pdf.rect(120, yPos - 8, 65, 15, 'F');
-  
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(14);
-  pdf.text('Sub Total', 125, yPos);
+  // Subtotal
+  pdf.text('Subtotal:', 125, yPos);
   pdf.text(formatINR(subtotal), 165, yPos);
+  yPos += 15;
   
-  // Reset text color for other totals
-  pdf.setTextColor(0, 0, 0);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(12);
-  
+  // Discount (if applicable)
   if (discount > 0) {
-    yPos += 20;
+    pdf.setTextColor(220, 38, 38); // Red color for discount
     pdf.text('Discount:', 125, yPos);
     pdf.text(`-${formatINR(discount)}`, 165, yPos);
+    pdf.setTextColor(0, 0, 0);
+    yPos += 15;
   }
   
-  yPos += 20;
+  // Tax
   pdf.text('Tax (5%):', 125, yPos);
   pdf.text(formatINR(tax), 165, yPos);
+  yPos += 15;
   
-  yPos += 20;
+  // Total with highlight
+  pdf.setFillColor(31, 81, 135);
+  pdf.rect(120, yPos - 8, 70, 15, 'F');
+  pdf.setTextColor(255, 255, 255);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(14);
-  pdf.text('Total:', 125, yPos);
+  pdf.setFontSize(12);
+  pdf.text('TOTAL:', 125, yPos);
   pdf.text(formatINR(order.totalAmount), 165, yPos);
   
-  // Payment Information section
-  if (order.paymentInfo) {
-    yPos += 35;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(14);
-    pdf.text('Payment Information:', 25, yPos);
-    
-    yPos += 15;
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(11);
-    pdf.text(`Bank: ShopNow Bank`, 25, yPos);
-    yPos += 12;
-    pdf.text(`No Bank: 123-456-7890`, 25, yPos);
-    yPos += 12;
-    pdf.text(`Email: support@shopnow.com`, 25, yPos);
-  }
-  
-  // Thank You message - large and centered
+  // Payment Information
   yPos += 35;
+  pdf.setTextColor(37, 99, 235);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(24);
-  pdf.setTextColor(primaryBlue.r, primaryBlue.g, primaryBlue.b);
-  pdf.text('Thank You!', 105, yPos, { align: 'center' });
+  pdf.setFontSize(12);
+  pdf.text('PAYMENT INFORMATION', 20, yPos);
   
-  // Footer note
-  yPos += 20;
-  pdf.setFont('helvetica', 'italic');
+  yPos += 15;
+  pdf.setTextColor(0, 0, 0);
+  pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(10);
-  pdf.setTextColor(grayColor.r, grayColor.g, grayColor.b);
-  pdf.text('For support, contact us at support@shopnow.com', 105, yPos, { align: 'center' });
+  pdf.text('Bank: Market Cloud Bank', 20, yPos);
+  yPos += 10;
+  pdf.text('Account: 1234-5678-9012', 20, yPos);
+  yPos += 10;
+  pdf.text('IFSC: MCLD0001234', 20, yPos);
+  yPos += 10;
+  pdf.text('Email: billing@marketcloud.com', 20, yPos);
+  
+  // Thank you message with styling
+  yPos += 25;
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(20);
+  pdf.setTextColor(31, 81, 135);
+  pdf.text('Thank You for Your Business!', 105, yPos, { align: 'center' });
+  
+  // Footer
+  yPos += 15;
+  pdf.setFont('helvetica', 'italic');
+  pdf.setFontSize(9);
+  pdf.setTextColor(107, 114, 128);
+  pdf.text('This is a computer-generated invoice. For queries, contact support@marketcloud.com', 105, yPos, { align: 'center' });
 }
 
 // Calculate discount amount

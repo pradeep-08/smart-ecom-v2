@@ -8,6 +8,7 @@ interface OrderTrackerProps {
 export default function OrderTracker({ status }: OrderTrackerProps) {
   const steps = [
     { id: "placed", label: "Order Placed" },
+    { id: "processing", label: "Processing" },
     { id: "packed", label: "Packed" },
     { id: "shipped", label: "Shipped" },
     { id: "out_for_delivery", label: "Out for Delivery" },
@@ -17,10 +18,11 @@ export default function OrderTracker({ status }: OrderTrackerProps) {
   // Map order status to step number
   const statusValues: Record<OrderStatus, number> = {
     placed: 0,
-    packed: 1,
-    shipped: 2,
-    out_for_delivery: 3,
-    delivered: 4,
+    processing: 1,
+    packed: 2,
+    shipped: 3,
+    out_for_delivery: 4,
+    delivered: 5,
     cancelled: 0 // Setting cancelled to 0 to show minimal progress
   };
   

@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import { OrderStatus } from "@/types";
 
@@ -9,6 +8,7 @@ interface OrderStatusBadgeProps {
 export default function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
   const statusConfig: Record<OrderStatus, { label: string; variant: "default" | "outline" | "secondary" | "destructive" }> = {
     placed: { label: "Placed", variant: "outline" },
+    processing: { label: "Processing", variant: "secondary" },
     packed: { label: "Packed", variant: "secondary" },
     shipped: { label: "Shipped", variant: "default" },
     out_for_delivery: { label: "Out for Delivery", variant: "default" },

@@ -1,88 +1,52 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Order, CartItem, OrderStatus, ShippingDetails, Coupon, PaymentInfo, TrackingInfo } from "@/types";
 import { useAuth } from "./AuthContext";
-import { useProduct } from "./ProductContext";
 import { toast } from "sonner";
 import { getOrderTrackingStatus } from "@/services/trackingService";
 import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from "@/services/emailService";
 import { generateInvoice } from "@/services/invoiceService";
+import { orderApi } from "@/backend/api/orderApi";
+import { productApi } from "@/backend/api/productApi";
 
 interface OrderContextType {
   orders: Order[];
+  loading: boolean;
   createOrder: (items: CartItem[], shippingDetails: ShippingDetails, appliedCoupon?: Coupon) => Promise<Order>;
   getUserOrders: () => Order[];
   getAllOrders: () => Order[];
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
-  updateCourierId: (orderId: string, courierId: string) => void;
+  updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+  updateCourierId: (orderId: string, courierId: string) => Promise<void>;
   getOrderById: (orderId: string) => Order | undefined;
-  completeOrderPayment: (orderId: string, paymentInfo: Omit<PaymentInfo, "timestamp">) => void;
+  completeOrderPayment: (orderId: string, paymentInfo: Omit<PaymentInfo, "timestamp">) => Promise<void>;
   refreshOrderTracking: (orderId: string) => Promise<TrackingInfo | null>;
   generateOrderInvoice: (orderId: string) => Promise<string>;
+  refreshOrders: () => Promise<void>;
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
-// Mock orders for demo
-const MOCK_ORDERS: Order[] = [
-  {
-    id: "order-1",
-    userId: "user-1",
-    items: [],
-    totalAmount: 1299.99,
-    status: "delivered",
-    shippingDetails: {
-      name: "Demo User",
-      address: "123 Main St",
-      city: "Anytown",
-      state: "CA",
-      zipCode: "12345",
-      phone: "555-123-4567"
-    },
-    courierId: "IN4325678901",
-    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
-    updatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) // 10 days ago
-  },
-  {
-    id: "order-2",
-    userId: "user-1",
-    items: [],
-    totalAmount: 895.50,
-    status: "shipped",
-    shippingDetails: {
-      name: "Demo User",
-      address: "123 Main St",
-      city: "Anytown",
-      state: "CA",
-      zipCode: "12345",
-      phone: "555-123-4567"
-    },
-    courierId: "IN9876543210",
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) // 3 days ago
-  }
-];
-
 export function OrderProvider({ children }: { children: ReactNode }) {
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { updateStock } = useProduct();
 
-  // Load orders from localStorage on component mount
+  // Load orders from API on component mount
   useEffect(() => {
-    const savedOrders = localStorage.getItem("orders");
-    if (savedOrders) {
-      try {
-        setOrders(JSON.parse(savedOrders));
-      } catch (error) {
-        console.error("Failed to parse orders from localStorage", error);
-      }
-    }
+    loadOrders();
   }, []);
 
-  // Save orders to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem("orders", JSON.stringify(orders));
-  }, [orders]);
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const data = await orderApi.getAll();
+      setOrders(data);
+    } catch (error) {
+      console.error("Failed to load orders", error);
+      toast.error("Failed to load orders");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const createOrder = async (
     items: CartItem[], 
@@ -103,71 +67,39 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Calculate total amount
-    let totalAmount = items.reduce(
-      (total, item) => total + item.product.price * item.quantity,
-      0
-    );
-    
-    console.log('Subtotal before coupon:', totalAmount);
-    
-    // Apply coupon discount if available
-    if (appliedCoupon) {
-      console.log('Applying coupon:', appliedCoupon);
-      if (appliedCoupon.discountType === 'percentage') {
-        const discountAmount = (totalAmount * appliedCoupon.discountPercentage) / 100;
-        totalAmount -= discountAmount;
-        console.log('Discount amount (percentage):', discountAmount);
-      } else {
-        totalAmount -= appliedCoupon.discountValue;
-        console.log('Discount amount (fixed):', appliedCoupon.discountValue);
+    try {
+      const newOrder = await orderApi.create({
+        userId: user.id,
+        items,
+        shippingDetails,
+        appliedCoupon
+      });
+
+      // Update stock for each ordered item
+      for (const item of items) {
+        await productApi.updateStock(item.product.id, item.quantity);
       }
+
+      // Add order to state
+      setOrders(prevOrders => [...prevOrders, newOrder]);
+      toast.success("Order placed successfully! Stock has been updated.");
       
-      // Ensure total is never negative
-      if (totalAmount < 0) totalAmount = 0;
-    }
-
-    // Add 5% tax
-    const taxAmount = totalAmount * 0.05;
-    totalAmount += taxAmount;
-    
-    console.log('Final total amount:', totalAmount);
-
-    // Create new order
-    const newOrder: Order = {
-      id: `order-${Date.now()}`,
-      userId: user.id,
-      items,
-      totalAmount,
-      status: "placed",
-      shippingDetails,
-      couponApplied: appliedCoupon,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    console.log('Created new order:', newOrder);
-
-    // Update stock for each ordered item
-    items.forEach(item => {
-      updateStock(item.product.id, item.quantity);
-    });
-
-    // Add order to state
-    setOrders(prevOrders => [...prevOrders, newOrder]);
-    toast.success("Order placed successfully! Stock has been updated.");
-    
-    // Send order confirmation email (in a real app)
-    if (user.email) {
-      try {
-        await sendOrderConfirmationEmail(newOrder, user.email);
-        console.log("Order confirmation email sent successfully");
-      } catch (error) {
-        console.error("Failed to send order confirmation email", error);
+      // Send order confirmation email (in a real app)
+      if (user.email) {
+        try {
+          await sendOrderConfirmationEmail(newOrder, user.email);
+          console.log("Order confirmation email sent successfully");
+        } catch (error) {
+          console.error("Failed to send order confirmation email", error);
+        }
       }
-    }
 
-    return newOrder;
+      return newOrder;
+    } catch (error) {
+      console.error("Failed to create order", error);
+      toast.error("Failed to create order");
+      throw error;
+    }
   };
 
   const getUserOrders = () => {
@@ -179,53 +111,58 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     return orders;
   };
 
-  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
-    setOrders(prevOrders =>
-      prevOrders.map(order =>
-        order.id === orderId
-          ? { ...order, status, updatedAt: new Date() }
-          : order
-      )
-    );
-    
-    // Get the order and user to send email notification
-    const updatedOrder = orders.find(order => order.id === orderId);
-    if (updatedOrder) {
-      const orderUser = user; // In a real app, would get user email from their ID
+  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    try {
+      const updatedOrder = await orderApi.updateStatus(orderId, status);
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId ? updatedOrder : order
+        )
+      );
+      
+      // Send email notification
+      const orderUser = user;
       if (orderUser && orderUser.email) {
         sendOrderStatusUpdateEmail(orderId, status, orderUser.email)
           .then(() => console.log(`Email sent for order ${orderId} status update`))
           .catch(error => console.error("Failed to send status update email", error));
       }
+      
+      toast.success(`Order ${orderId} status updated to ${status}`);
+    } catch (error) {
+      console.error("Failed to update order status", error);
+      toast.error("Failed to update order status");
     }
-    
-    toast.success(`Order ${orderId} status updated to ${status}`);
   };
   
-  const updateCourierId = (orderId: string, courierId: string) => {
-    setOrders(prevOrders =>
-      prevOrders.map(order =>
-        order.id === orderId
-          ? { ...order, courierId, updatedAt: new Date() }
-          : order
-      )
-    );
-    toast.success(`Courier ID updated for order ${orderId}`);
+  const updateCourierId = async (orderId: string, courierId: string) => {
+    try {
+      const updatedOrder = await orderApi.updateCourierId(orderId, courierId);
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId ? updatedOrder : order
+        )
+      );
+      toast.success(`Courier ID updated for order ${orderId}`);
+    } catch (error) {
+      console.error("Failed to update courier ID", error);
+      toast.error("Failed to update courier ID");
+    }
   };
 
-  const completeOrderPayment = (orderId: string, paymentInfo: Omit<PaymentInfo, "timestamp">) => {
-    setOrders(prevOrders =>
-      prevOrders.map(order =>
-        order.id === orderId
-          ? { 
-              ...order, 
-              paymentInfo: { ...paymentInfo, timestamp: new Date() },
-              updatedAt: new Date()
-            }
-          : order
-      )
-    );
-    toast.success(`Payment updated for order ${orderId}`);
+  const completeOrderPayment = async (orderId: string, paymentInfo: Omit<PaymentInfo, "timestamp">) => {
+    try {
+      const updatedOrder = await orderApi.completePayment(orderId, paymentInfo);
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId ? updatedOrder : order
+        )
+      );
+      toast.success(`Payment updated for order ${orderId}`);
+    } catch (error) {
+      console.error("Failed to complete payment", error);
+      toast.error("Failed to complete payment");
+    }
   };
 
   const getOrderById = (orderId: string) => {
@@ -273,9 +210,14 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshOrders = async () => {
+    await loadOrders();
+  };
+
   return (
     <OrderContext.Provider value={{
       orders,
+      loading,
       createOrder,
       getUserOrders,
       getAllOrders,
@@ -284,7 +226,8 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       getOrderById,
       completeOrderPayment,
       refreshOrderTracking,
-      generateOrderInvoice
+      generateOrderInvoice,
+      refreshOrders
     }}>
       {children}
     </OrderContext.Provider>

@@ -1,4 +1,3 @@
-
 import { CartItem } from "@/types";
 import { formatINR } from "@/utils/formatters";
 

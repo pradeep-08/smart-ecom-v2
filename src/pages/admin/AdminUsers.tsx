@@ -3,6 +3,23 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { 
   Search, 
   User, 
@@ -11,22 +28,36 @@ import {
   ShieldAlert, 
   Calendar, 
   IndianRupee,
-  Package
+  Package,
+  RefreshCw,
+  Plus,
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { User as UserType } from "@/types";
 import { formatINR } from "@/utils/formatters";
 import { useOrder } from "@/contexts/OrderContext";
+import { usersApi } from "@/backend/api/usersApi";
+import { toast } from "sonner";
 
 export default function AdminUsers() {
-  // In a real app, this would come from a users context or API
-  // For now, we'll use the mock users from AuthContext
   const { getMockUsers } = useAuth();
-  const { getAllOrders } = useOrder();
+  const { getAllOrders, loading: ordersLoading } = useOrder();
   
   const allUsers = getMockUsers();
   const allOrders = getAllOrders();
   
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    role: "user" as "user" | "admin"
+  });
   
   // Filter users by search term
   const filteredUsers = allUsers.filter(user =>
@@ -50,10 +81,124 @@ export default function AdminUsers() {
       lastOrderDate
     };
   };
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    // Simulate refresh delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setLoading(false);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      email: "",
+      role: "user"
+    });
+  };
+
+  const handleAddUser = async () => {
+    if (!formData.name || !formData.email) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    try {
+      await usersApi.create({
+        name: formData.name,
+        email: formData.email,
+        role: formData.role
+      });
+      toast.success("User created successfully!");
+      resetForm();
+      setIsAddDialogOpen(false);
+    } catch (error) {
+      toast.error("Failed to create user");
+    }
+  };
+
+  const handleEditUser = async () => {
+    if (!currentUser || !formData.name || !formData.email) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    try {
+      await usersApi.update(currentUser.id, {
+        name: formData.name,
+        email: formData.email,
+        role: formData.role
+      });
+      toast.success("User updated successfully!");
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      toast.error("Failed to update user");
+    }
+  };
+
+  const openEditDialog = (user: UserType) => {
+    setCurrentUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      role: user.role
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (confirm("Are you sure you want to delete this user?")) {
+      try {
+        await usersApi.delete(userId);
+        toast.success("User deleted successfully!");
+      } catch (error) {
+        toast.error("Failed to delete user");
+      }
+    }
+  };
+  
+  if (ordersLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+        
+        <Skeleton className="h-10 w-full" />
+        
+        <div className="space-y-4">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-24 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Users</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Users</h1>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setIsAddDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add User
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+      </div>
       
       {/* Search */}
       <div className="relative">
@@ -79,6 +224,8 @@ export default function AdminUsers() {
                 totalOrders={stats.totalOrders}
                 totalValue={stats.totalValue}
                 lastOrderDate={stats.lastOrderDate}
+                onEdit={openEditDialog}
+                onDelete={handleDeleteUser}
               />
             );
           })
@@ -88,6 +235,118 @@ export default function AdminUsers() {
           </div>
         )}
       </div>
+
+      {/* Add User Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new user account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                required
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                required
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="role">Role</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value: "user" | "admin") => setFormData(prev => ({ ...prev, role: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddUser}>Add User</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Name *</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                required
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-email">Email *</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                required
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-role">Role</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value: "user" | "admin") => setFormData(prev => ({ ...prev, role: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditUser}>Update User</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -97,9 +356,11 @@ interface UserCardProps {
   totalOrders: number;
   totalValue: number;
   lastOrderDate: Date | null;
+  onEdit: (user: UserType) => void;
+  onDelete: (userId: string) => void;
 }
 
-function UserCard({ user, totalOrders, totalValue, lastOrderDate }: UserCardProps) {
+function UserCard({ user, totalOrders, totalValue, lastOrderDate, onEdit, onDelete }: UserCardProps) {
   return (
     <div className="border rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card">
       <div className="flex items-center gap-4">
@@ -155,9 +416,21 @@ function UserCard({ user, totalOrders, totalValue, lastOrderDate }: UserCardProp
           )}
         </Badge>
         
-        <Button variant="outline" size="sm">
-          View Details
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => onEdit(user)}>
+            <Pencil className="h-3 w-3 mr-1" />
+            Edit
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => onDelete(user.id)}
+            className="text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Delete
+          </Button>
+        </div>
       </div>
     </div>
   );

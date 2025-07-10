@@ -3,6 +3,12 @@ import { useCoupon } from "@/contexts/CouponContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -35,7 +41,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar as CalendarIcon, X, Plus, Trash2, Search } from "lucide-react";
+import { Calendar as CalendarIcon, X, Plus, Trash2, Search, MoreHorizontal, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Coupon } from "@/types";
@@ -46,6 +52,8 @@ export default function AdminCoupons() {
   const { coupons, addCoupon, removeCoupon } = useCoupon();
   const [search, setSearch] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentCoupon, setCurrentCoupon] = useState<Coupon | null>(null);
   const [discountType, setDiscountType] = useState<"percentage" | "flat">("percentage");
   const [expiryDate, setExpiryDate] = useState<Date>(addMonths(new Date(), 1));
   const [isActive, setIsActive] = useState(true);
@@ -64,6 +72,24 @@ export default function AdminCoupons() {
       coupon.code.toLowerCase().includes(search.toLowerCase())
   );
   
+  const resetForm = () => {
+    form.reset();
+    setDiscountType("percentage");
+    setExpiryDate(addMonths(new Date(), 1));
+    setIsActive(true);
+  };
+
+  const openEditDialog = (coupon: Coupon) => {
+    setCurrentCoupon(coupon);
+    form.setValue("code", coupon.code);
+    form.setValue("discountValue", coupon.discountValue.toString());
+    form.setValue("minimumAmount", coupon.minimumAmount?.toString() || "");
+    setDiscountType(coupon.discountType);
+    setExpiryDate(new Date(coupon.expiresAt));
+    setIsActive(coupon.isActive);
+    setIsEditDialogOpen(true);
+  };
+
   const handleAddCoupon = (data: any) => {
     const code = data.code.toUpperCase();
     const discountValue = parseFloat(data.discountValue);
@@ -92,8 +118,42 @@ export default function AdminCoupons() {
     });
     
     // Reset form and close dialog
-    form.reset();
+    resetForm();
     setIsAddDialogOpen(false);
+  };
+
+  const handleEditCoupon = (data: any) => {
+    if (!currentCoupon) return;
+    
+    const code = data.code.toUpperCase();
+    const discountValue = parseFloat(data.discountValue);
+    const minimumAmount = data.minimumAmount ? parseFloat(data.minimumAmount) : undefined;
+    
+    if (!code || isNaN(discountValue) || discountValue <= 0) {
+      toast.error("Please fill all required fields correctly");
+      return;
+    }
+    
+    // For percentage discount, ensure it's not more than 100%
+    if (discountType === "percentage" && discountValue > 100) {
+      toast.error("Percentage discount cannot exceed 100%");
+      return;
+    }
+    
+    // Remove old coupon and add updated one
+    removeCoupon(currentCoupon.code);
+    addCoupon({
+      code,
+      discountType,
+      discountValue,
+      discountPercentage: discountType === "percentage" ? discountValue : 0,
+      minimumAmount,
+      expiresAt: expiryDate,
+      isActive,
+    });
+    
+    toast.success("Coupon updated successfully!");
+    setIsEditDialogOpen(false);
   };
   
   const formatDiscount = (coupon: Coupon) => {
@@ -282,6 +342,176 @@ export default function AdminCoupons() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Edit Coupon Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Coupon</DialogTitle>
+            <DialogDescription>
+              Update the coupon details.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleEditCoupon)} className="space-y-4 py-4">
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Coupon Code*</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="SUMMER20"
+                        className="uppercase"
+                        required
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Enter a unique code for this coupon.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Discount Type*</Label>
+                  <Select
+                    value={discountType}
+                    onValueChange={(value: "percentage" | "flat") => setDiscountType(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="flat">Flat Amount (₹)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="discountValue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {discountType === "percentage" ? "Discount %" : "Discount Amount (₹)"}*
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          min={1}
+                          max={discountType === "percentage" ? 100 : undefined}
+                          placeholder={discountType === "percentage" ? "20" : "100"}
+                          required
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="minimumAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Minimum Purchase Amount (₹)</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="number"
+                        min={0}
+                        placeholder="1000"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Minimum order total required to use this coupon (optional).
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="space-y-2">
+                <Label>Expiry Date*</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {expiryDate ? format(expiryDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={expiryDate}
+                      onSelect={(date) => date && setExpiryDate(date)}
+                      initialFocus
+                      disabled={(date) => date < new Date()}
+                    />
+                    <div className="p-3 border-t flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setExpiryDate(addDays(new Date(), 7))}
+                      >
+                        7 Days
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setExpiryDate(addMonths(new Date(), 1))}
+                      >
+                        1 Month
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setExpiryDate(addMonths(new Date(), 3))}
+                      >
+                        3 Months
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="editIsActive"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <Label htmlFor="editIsActive" className="text-sm font-normal">
+                  Coupon is active
+                </Label>
+              </div>
+              
+              <DialogFooter className="pt-4">
+                <Button variant="outline" type="button" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Update Coupon</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
       
       {/* Search */}
       <div className="relative">
@@ -325,15 +555,26 @@ export default function AdminCoupons() {
                     </Badge>
                   </td>
                   <td className="p-4 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-destructive hover:bg-destructive/10"
-                      onClick={() => removeCoupon(coupon.code)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Remove
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(coupon)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => removeCoupon(coupon.code)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))
