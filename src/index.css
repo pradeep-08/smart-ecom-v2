@@ -93,3 +93,19 @@
     text-wrap: balance;
   }
 }
+
+@container (max-width: 380px) {
+  .cart-text {
+    display: none;
+  }
+
+  .cart-icon-adjust {
+    margin-right: 0 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  #root {
+    padding: 0rem;
+  }
+}
