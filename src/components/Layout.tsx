@@ -9,7 +9,7 @@ interface LayoutProps {
 
 export default function Layout({ children, fullScreen = false }: LayoutProps) {
   const { user } = useAuth();
-  
+
   if (fullScreen) {
     return (
       <div className="min-h-screen w-full bg-background">
@@ -17,7 +17,7 @@ export default function Layout({ children, fullScreen = false }: LayoutProps) {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen w-full flex flex-col bg-background">
       <Navbar />
@@ -26,11 +26,14 @@ export default function Layout({ children, fullScreen = false }: LayoutProps) {
           {children}
         </div>
       </main>
-      <footer className="bg-muted py-6 mt-auto">
-        <div className="container mx-auto px-4 text-center text-muted-foreground text-sm max-w-7xl">
-          &copy; {new Date().getFullYear()} Market Cloud eCommerce. All rights reserved.
-        </div>
-      </footer>
+   <footer className="bg-muted py-6 mt-auto">
+  <div className="container mx-auto px-4 text-center text-muted-foreground text-sm max-w-7xl">
+    &copy; {new Date().getFullYear()} ZephyCart. All rights reserved. <br />
+    <span className="text-xs">
+      Powered by <a href="https://webbious.com/" className="underline hover:text-primary" target="_blank" rel="noopener noreferrer">Webbious</a>
+    </span>
+  </div>
+</footer>
     </div>
   );
 }

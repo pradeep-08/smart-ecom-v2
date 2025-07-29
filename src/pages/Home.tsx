@@ -25,7 +25,7 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-16 py-8">
       {/* Hero Section */}
-      <section className="relative py-20 px-4 md:px-8 rounded-3xl overflow-hidden bg-gradient-to-br from-primary/80 to-accent/80 text-white">
+      {/* <section className="relative py-20 px-4 md:px-8 rounded-3xl overflow-hidden bg-gradient-to-br from-primary/80 to-accent/80 text-white">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1740')] mix-blend-overlay opacity-20 bg-cover bg-center" />
         
         <div className="relative max-w-4xl mx-auto text-center">
@@ -45,7 +45,7 @@ export default function Home() {
             </Button>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Category Filter Section */}
       <section className="container mx-auto px-4">
@@ -105,7 +105,7 @@ export default function Home() {
       </section>
       
       {/* Features Section */}
-      <section className="bg-muted py-16">
+      {/* <section className="bg-muted py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold mb-12 text-center">Why Shop With Us</h2>
           
@@ -147,7 +147,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
     </div>
   );
 }
