@@ -13,9 +13,9 @@ export const productApi = {
   getAll: async (): Promise<Product[]> => {
     logEndpointCall(API_ENDPOINTS.PRODUCTS.GET_ALL);
     try {
-      const response = await apiClient.get(API_ENDPOINTS.PRODUCTS.GET_ALL);
+      const response = await apiClient.post(API_ENDPOINTS.PRODUCTS.GET_ALL , {});
       logEndpointResponse(API_ENDPOINTS.PRODUCTS.GET_ALL, response.data);
-      return response.data;
+    return response.data.content || [];
     } catch (error) {
       console.log('Using mock products data');
       await mockDelay();
@@ -23,6 +23,21 @@ export const productApi = {
       return PRODUCTS_DATA;
     }
   },
+
+// getAll: async (): Promise<Product[]> => {
+//   logEndpointCall(API_ENDPOINTS.PRODUCTS.GET_ALL);
+//   try {
+//     const response = await apiClient.post(API_ENDPOINTS.PRODUCTS.GET_ALL, {});
+//     logEndpointResponse(API_ENDPOINTS.PRODUCTS.GET_ALL, response.data);
+//     return response.data.content || [];
+//   } catch (error) {
+//     console.log('Using mock products data');
+//     await mockDelay();
+//     logEndpointResponse(API_ENDPOINTS.PRODUCTS.GET_ALL, PRODUCTS_DATA);
+//     return PRODUCTS_DATA;
+//   }
+// }
+
 
   // Get product by ID
   getById: async (id: string): Promise<Product | null> => {
