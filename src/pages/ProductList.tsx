@@ -22,20 +22,20 @@
 //   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
 //   const [showFilters, setShowFilters] = useState(false);
 //   const [refreshing, setRefreshing] = useState(false);
-  
+
 //   // Extract unique categories from products
 //   const categories = ["all", ...Array.from(new Set(products.map(p => p.category).filter(Boolean) as string[]))];
-  
+
 //   // Find min and max prices for the price range filter
 //   const minProductPrice = products.length > 0 ? Math.min(...products.map(p => p.price)) : 0;
 //   const maxProductPrice = products.length > 0 ? Math.max(...products.map(p => p.price)) : 100000;
-  
+
 //   useEffect(() => {
 //     if (products.length > 0) {
 //       setPriceRange([minProductPrice, maxProductPrice]);
 //     }
 //   }, [minProductPrice, maxProductPrice, products.length]);
-  
+
 //   // Filter and sort products
 //   const filteredProducts = products
 //     .filter(product => 
@@ -67,7 +67,7 @@
 //     await refreshProducts();
 //     setRefreshing(false);
 //   };
-  
+
 //   return (
 //     <div className="container mx-auto py-8 px-4">
 //       <div className="flex justify-between items-center mb-8">
@@ -82,7 +82,7 @@
 //           Refresh
 //         </Button>
 //       </div>
-      
+
 //       {/* Main Search */}
 //       <div className="flex flex-col md:flex-row gap-4 mb-6">
 //         <div className="flex-1 relative">
@@ -94,7 +94,7 @@
 //             className="pl-10"
 //           />
 //         </div>
-        
+
 //         <Button 
 //           variant="outline" 
 //           className="flex items-center gap-2"
@@ -103,7 +103,7 @@
 //           <Filter className="h-4 w-4" />
 //           Filters
 //         </Button>
-        
+
 //         <Select value={sortBy} onValueChange={setSortBy}>
 //           <SelectTrigger className="w-[180px]">
 //             <SelectValue placeholder="Sort By" />
@@ -124,14 +124,14 @@
 //           </SelectContent>
 //         </Select>
 //       </div>
-      
+
 //       {/* Advanced Filters */}
 //       {showFilters && (
 //         <div className="bg-muted/50 rounded-md p-4 mb-6">
 //           <h2 className="font-medium mb-4 flex items-center gap-2">
 //             <ListFilter className="h-4 w-4" /> Advanced Filters
 //           </h2>
-          
+
 //           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 //             <div>
 //               <label className="block text-sm font-medium mb-2">Category</label>
@@ -148,7 +148,7 @@
 //                 </SelectContent>
 //               </Select>
 //             </div>
-            
+
 //             <div>
 //               <label className="block text-sm font-medium mb-2">Price Range</label>
 //               <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@
 //           </div>
 //         </div>
 //       )}
-      
+
 //       {/* Loading State */}
 //       {loading && (
 //         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -179,7 +179,7 @@
 //           ))}
 //         </div>
 //       )}
-      
+
 //       {/* Products Grid */}
 //       {!loading && (
 //         <>
@@ -480,10 +480,16 @@ export default function ProductList() {
   }, [minProductPrice, maxProductPrice, products.length]);
 
   const filteredProducts = products
-    .filter(product =>
-      product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.description.toLowerCase().includes(search.toLowerCase())
-    )
+    // .filter(product =>
+    //   product.name.toLowerCase().includes(search.toLowerCase()) ||
+    //   product.description.toLowerCase().includes(search.toLowerCase())
+    // )
+
+    .filter(product => {
+      const nameMatch = (product.name ?? "").toLowerCase().includes(search.toLowerCase());
+      const descMatch = (product.description ?? "").toLowerCase().includes(search.toLowerCase());
+      return nameMatch || descMatch;
+    })
     .filter(product =>
       category === "all" || product.category === category
     )

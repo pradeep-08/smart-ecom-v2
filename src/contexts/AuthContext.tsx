@@ -26,7 +26,7 @@ const MOCK_USERS: User[] = [
     id: "user-1",
     email: "user@example.com",
     name: "Demo User",
-    role: "user",
+    role: "admin",
     createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
   },
   {

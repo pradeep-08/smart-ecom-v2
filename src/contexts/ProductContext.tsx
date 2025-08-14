@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Product } from "@/types";
 import { toast } from "sonner";
 import { productApi } from "@/backend/api/productApi";
@@ -19,7 +20,7 @@ const ProductContext = createContext<ProductContextType | undefined>(undefined);
 export function ProductProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const navigate = useNavigate();
   // Load products from API on component mount
   useEffect(() => {
     loadProducts();
@@ -47,6 +48,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       const newProduct = await productApi.create(product);
       setProducts(prevProducts => [...prevProducts, newProduct]);
       toast.success(`Product "${product.name}" added successfully`);
+        // Redirect after success
+      navigate("/admin/products"); 
     } catch (error) {
       console.error("Failed to add product", error);
       toast.error("Failed to add product");

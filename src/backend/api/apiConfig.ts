@@ -24,7 +24,7 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/api/users/${id}`,
   },
   PRODUCTS: {
-    GET_ALL: '/api/products',
+    GET_ALL: '/api/products/list',
     GET_BY_ID: (id: string) => `/api/products/${id}`,
     CREATE: '/api/products',
     UPDATE: (id: string) => `/api/products/${id}`,

@@ -46,7 +46,7 @@ export default function AdminProducts() {
   const [isBulkUploadDialogOpen, setIsBulkUploadDialogOpen] = useState(false);
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
-  
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -55,9 +55,9 @@ export default function AdminProducts() {
     stock: "",
     sku: "",
   });
-  
+
   const [productImages, setProductImages] = useState<string[]>([]);
-  
+
   // Filter products by search term
   const filteredProducts = products.filter(
     (product) =>
@@ -65,12 +65,12 @@ export default function AdminProducts() {
       product.description.toLowerCase().includes(search.toLowerCase()) ||
       product.sku?.toLowerCase().includes(search.toLowerCase())
   );
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-  
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -82,31 +82,31 @@ export default function AdminProducts() {
     });
     setProductImages([]);
   };
-  
+
   const handleAddProduct = () => {
     const price = parseFloat(formData.price);
     const stock = formData.stock ? parseInt(formData.stock) : undefined;
-    
+
     if (!formData.name || !formData.description || isNaN(price)) {
       toast.error("Please fill all required fields");
       return;
     }
-    
+
     if (productImages.length === 0) {
       toast.error("Please add at least one product image");
       return;
     }
-    
+
     if (isNaN(price) || price <= 0) {
       toast.error("Price must be a positive number");
       return;
     }
-    
+
     if (formData.stock && (isNaN(stock!) || stock! < 0)) {
       toast.error("Stock must be a valid number");
       return;
     }
-    
+
     addProduct({
       name: formData.name,
       description: formData.description,
@@ -117,38 +117,38 @@ export default function AdminProducts() {
       category: formData.category || undefined,
       stock,
     });
-    
+
     resetForm();
     setIsAddDialogOpen(false);
     toast.success("Product added successfully!");
   };
-  
+
   const handleEditProduct = () => {
     if (!currentProduct) return;
-    
+
     const price = parseFloat(formData.price);
     const stock = formData.stock ? parseInt(formData.stock) : undefined;
-    
+
     if (!formData.name || !formData.description || isNaN(price)) {
       toast.error("Please fill all required fields");
       return;
     }
-    
+
     if (productImages.length === 0) {
       toast.error("Please add at least one product image");
       return;
     }
-    
+
     if (isNaN(price) || price <= 0) {
       toast.error("Price must be a positive number");
       return;
     }
-    
+
     if (formData.stock && (isNaN(stock!) || stock! < 0)) {
       toast.error("Stock must be a valid number");
       return;
     }
-    
+
     updateProduct(currentProduct.id, {
       name: formData.name,
       description: formData.description,
@@ -159,18 +159,18 @@ export default function AdminProducts() {
       category: formData.category || undefined,
       stock,
     });
-    
+
     setIsEditDialogOpen(false);
     toast.success("Product updated successfully!");
   };
-  
+
   const handleDeleteProduct = () => {
     if (currentProduct) {
       deleteProduct(currentProduct.id);
       setIsDeleteDialogOpen(false);
     }
   };
-  
+
   const openEditDialog = (product: Product) => {
     setCurrentProduct(product);
     setFormData({
@@ -185,35 +185,35 @@ export default function AdminProducts() {
     setProductImages([product.imageUrl, ...(product.images || [])]);
     setIsEditDialogOpen(true);
   };
-  
+
   const openDeleteDialog = (product: Product) => {
     setCurrentProduct(product);
     setIsDeleteDialogOpen(true);
   };
-  
+
   const handleBulkUpload = () => {
     if (!bulkUploadFile) {
       toast.error("Please select a file to upload");
       return;
     }
-    
+
     toast.info(`Processing ${bulkUploadFile.name}...`);
-    
+
     setTimeout(() => {
       toast.success("Bulk upload completed successfully!");
       setIsBulkUploadDialogOpen(false);
       setBulkUploadFile(null);
     }, 2000);
   };
-  
+
   const handleExportProducts = () => {
     toast.success("Exporting products...");
-    
+
     setTimeout(() => {
       toast.info("Products exported successfully!");
     }, 1500);
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -230,7 +230,7 @@ export default function AdminProducts() {
           </Button>
         </div>
       </div>
-      
+
       {/* Search */}
       <div className="flex items-center space-x-2">
         <div className="flex-1 relative">
@@ -243,7 +243,7 @@ export default function AdminProducts() {
           />
         </div>
       </div>
-      
+
       {/* Products Table */}
       <div className="rounded-md border overflow-hidden">
         <table className="w-full text-sm">
@@ -334,7 +334,7 @@ export default function AdminProducts() {
           </tbody>
         </table>
       </div>
-      
+
       {/* Add Product Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
@@ -346,11 +346,11 @@ export default function AdminProducts() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {/* Product Images */}
-            <ImageUploader 
+            <ImageUploader
               images={productImages}
               onImagesChange={setProductImages}
             />
-            
+
             {/* Product Name */}
             <div className="grid gap-2">
               <Label htmlFor="name">Product Name *</Label>
@@ -362,7 +362,7 @@ export default function AdminProducts() {
                 required
               />
             </div>
-            
+
             {/* Product Description */}
             <div className="grid gap-2">
               <Label htmlFor="description">Description *</Label>
@@ -375,7 +375,7 @@ export default function AdminProducts() {
                 required
               />
             </div>
-            
+
             {/* Price and Stock */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -395,7 +395,7 @@ export default function AdminProducts() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="stock">Stock</Label>
                 <Input
@@ -408,7 +408,7 @@ export default function AdminProducts() {
                 />
               </div>
             </div>
-            
+
             {/* Category and SKU */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -439,7 +439,7 @@ export default function AdminProducts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Edit Product Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
@@ -451,11 +451,11 @@ export default function AdminProducts() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {/* Product Images */}
-            <ImageUploader 
+            <ImageUploader
               images={productImages}
               onImagesChange={setProductImages}
             />
-            
+
             {/* Product Name */}
             <div className="grid gap-2">
               <Label htmlFor="edit-name">Product Name *</Label>
@@ -467,7 +467,7 @@ export default function AdminProducts() {
                 required
               />
             </div>
-            
+
             {/* Product Description */}
             <div className="grid gap-2">
               <Label htmlFor="edit-description">Description *</Label>
@@ -480,7 +480,7 @@ export default function AdminProducts() {
                 required
               />
             </div>
-            
+
             {/* Price and Stock */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -500,7 +500,7 @@ export default function AdminProducts() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="edit-stock">Stock</Label>
                 <Input
@@ -513,7 +513,7 @@ export default function AdminProducts() {
                 />
               </div>
             </div>
-            
+
             {/* Category and SKU */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -544,7 +544,7 @@ export default function AdminProducts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Delete Product Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
@@ -583,7 +583,7 @@ export default function AdminProducts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Bulk Upload Dialog */}
       <Dialog open={isBulkUploadDialogOpen} onOpenChange={setIsBulkUploadDialogOpen}>
         <DialogContent>
@@ -600,9 +600,9 @@ export default function AdminProducts() {
                   <div className="flex items-center justify-center gap-2">
                     <FileSpreadsheet className="h-6 w-6 text-primary" />
                     <span>{bulkUploadFile.name}</span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setBulkUploadFile(null)}
                       className="ml-2"
                     >
@@ -629,7 +629,7 @@ export default function AdminProducts() {
                   </>
                 )}
               </div>
-              
+
               <div className="text-sm text-muted-foreground">
                 <p className="font-medium">Required columns:</p>
                 <ul className="list-disc list-inside ml-2 mt-1">
@@ -648,7 +648,7 @@ export default function AdminProducts() {
             <Button variant="outline" onClick={() => setIsBulkUploadDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               disabled={!bulkUploadFile}
               onClick={handleBulkUpload}
             >

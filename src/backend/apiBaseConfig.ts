@@ -1,6 +1,6 @@
-export const API_URL = 'https://Ajithkumar-API-URL.com/api';
-export const AUTH_URL = 'https://Ajithkumar-AUTH-URL.com/api/auth';
-export const IMS_API_URL = "https://Ajithkumar-IMS-API-URL.com/api/ims";
+export const API_URL = 'https://ecom-backend-yim3.onrender.com';
+export const AUTH_URL = 'http://localhost:8080';
+export const IMS_API_URL = "http://localhost:8080";
 
 export const API_BASE_CONFIG = {
   baseURL: API_URL,
